@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Radioactive Half-life Simulation</title>
+    <style>
+        #penny-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 1px solid black;
+            margin: 0 auto;
+            background-color: #f0f0f0;
+        }
+        #penny-container img {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            cursor: grab;
+        }
+        #controls {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #title, #penny-count {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<h1 id="title">Radioactive Half-life Simulation</h1>
+<p id="penny-count">Penny Count: 200</p>
+
+<div id="penny-container">
+    <!-- Pennies will be added here dynamically -->
+</div>
+
+<div id="controls">
+    <button id="shake-button">Shake!</button>
+    <button id="reset-button">Reset</button>
+</div>
+
+<script>
+    var totalPennies = 200;
+    var pennyContainer = document.getElementById('penny-container');
+    var pennyCountDisplay = document.getElementById('penny-count');
+    var zIndexCounter = 1; // To keep track of z-index
+
+    function initializeSimulation() {
+        // Clear the penny container
+        pennyContainer.innerHTML = '';
+        // Reset penny count and z-index counter
+        totalPennies = 200;
+        zIndexCounter = 1;
+        pennyCountDisplay.textContent = 'Penny Count: ' + totalPennies;
+        // Create pennies
+        for (var i = 0; i < totalPennies; i++) {
+            var penny = document.createElement('img');
+            penny.src = Math.random() < 0.5 ? 'heads.webp' : 'tails.webp';
+            penny.style.left = Math.random() * (pennyContainer.clientWidth - 50) + 'px';
+            penny.style.top = Math.random() * (pennyContainer.clientHeight - 50) + 'px';
+            penny.style.zIndex = zIndexCounter;
+            penny.onmousedown = startDrag;
+            pennyContainer.appendChild(penny);
+        }
+    }
+
+    var draggedPenny = null;
+    var offsetX = 0;
+    var offsetY = 0;
+
+    function startDrag(event) {
+        draggedPenny = event.target;
+        zIndexCounter++;
+        draggedPenny.style.zIndex = zIndexCounter;
+        // Calculate the offset between the mouse position and the top-left corner of the penny
+        offsetX = event.clientX - draggedPenny.getBoundingClientRect().left;
+        offsetY = event.clientY - draggedPenny.getBoundingClientRect().top;
+        document.addEventListener('mousemove', dragging);
+        document.addEventListener('mouseup', endDrag);
+        event.preventDefault();
+    }
+
+    function dragging(event) {
+        var containerRect = pennyContainer.getBoundingClientRect();
+        var x = event.clientX - containerRect.left - offsetX;
+        var y = event.clientY - containerRect.top - offsetY;
+        draggedPenny.style.left = x + 'px';
+        draggedPenny.style.top = y + 'px';
+    }
+
+    function endDrag(event) {
+        document.removeEventListener('mousemove', dragging);
+        document.removeEventListener('mouseup', endDrag);
+        var pennyRect = draggedPenny.getBoundingClientRect();
+        var containerRect = pennyContainer.getBoundingClientRect();
+
+        // Check if the penny is outside the container
+        if (
+            pennyRect.right < containerRect.left ||
+            pennyRect.left > containerRect.right ||
+            pennyRect.bottom < containerRect.top ||
+            pennyRect.top > containerRect.bottom
+        ) {
+            // Remove the penny from the container
+            pennyContainer.removeChild(draggedPenny);
+            // Update the penny count
+            totalPennies--;
+            pennyCountDisplay.textContent = 'Penny Count: ' + totalPennies;
+        } else {
+            // Ensure the penny stays within the container bounds
+            var x = Math.min(Math.max(0, parseFloat(draggedPenny.style.left)), pennyContainer.clientWidth - 50);
+            var y = Math.min(Math.max(0, parseFloat(draggedPenny.style.top)), pennyContainer.clientHeight - 50);
+            draggedPenny.style.left = x + 'px';
+            draggedPenny.style.top = y + 'px';
+        }
+        draggedPenny = null;
+    }
+
+    function shakePennies() {
+        var pennies = pennyContainer.getElementsByTagName('img');
+        for (var i = 0; i < pennies.length; i++) {
+            var penny = pennies[i];
+            penny.src = Math.random() < 0.5 ? 'heads.webp' : 'tails.webp';
+            penny.style.left = Math.random() * (pennyContainer.clientWidth - 50) + 'px';
+            penny.style.top = Math.random() * (pennyContainer.clientHeight - 50) + 'px';
+        }
+    }
+
+    function resetSimulation() {
+        initializeSimulation();
+    }
+
+    // Event listeners for buttons
+    document.getElementById('shake-button').addEventListener('click', shakePennies);
+    document.getElementById('reset-button').addEventListener('click', resetSimulation);
+
+    // Initialize the simulation on page load
+    initializeSimulation();
+</script>
+
+</body>
+</html>
