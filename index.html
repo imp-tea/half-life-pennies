@@ -13,8 +13,8 @@
         }
         #penny-container img {
             position: absolute;
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             cursor: grab;
         }
         #controls {
@@ -36,12 +36,13 @@
 </div>
 
 <div id="controls">
-    <button id="shake-button">Shake!</button>
+    <button id="shake-button" enabled>Shake!</button>
     <button id="reset-button">Reset</button>
 </div>
 
 <script>
     var totalPennies = 200;
+    var pennySize = 40; // Penny size in pixels
     var pennyContainer = document.getElementById('penny-container');
     var pennyCountDisplay = document.getElementById('penny-count');
     var zIndexCounter = 1; // To keep track of z-index
@@ -53,12 +54,23 @@
         totalPennies = 200;
         zIndexCounter = 1;
         pennyCountDisplay.textContent = 'Penny Count: ' + totalPennies;
-        // Create pennies
+        // Enable the 'Shake!' button
+        document.getElementById('shake-button').disabled = false;
+        // Create pennies in a grid pattern, all tails
+        var cols = 20;
+        var rows = 10;
+        var x_start = 0;
+        var y_start = (pennyContainer.clientHeight - (rows * pennySize)) / 2;
         for (var i = 0; i < totalPennies; i++) {
             var penny = document.createElement('img');
-            penny.src = Math.random() < 0.5 ? 'heads.webp' : 'tails.webp';
-            penny.style.left = Math.random() * (pennyContainer.clientWidth - 50) + 'px';
-            penny.style.top = Math.random() * (pennyContainer.clientHeight - 50) + 'px';
+            penny.src = 'tails.webp';
+            penny.dataset.side = 'tails';
+            var col = i % cols;
+            var row = Math.floor(i / cols);
+            var x = x_start + col * pennySize;
+            var y = y_start + row * pennySize;
+            penny.style.left = x + 'px';
+            penny.style.top = y + 'px';
             penny.style.zIndex = zIndexCounter;
             penny.onmousedown = startDrag;
             pennyContainer.appendChild(penny);
@@ -102,15 +114,39 @@
             pennyRect.bottom < containerRect.top ||
             pennyRect.top > containerRect.bottom
         ) {
-            // Remove the penny from the container
-            pennyContainer.removeChild(draggedPenny);
-            // Update the penny count
-            totalPennies--;
-            pennyCountDisplay.textContent = 'Penny Count: ' + totalPennies;
+            if (draggedPenny.dataset.side === 'heads') {
+                // Remove the penny from the container
+                pennyContainer.removeChild(draggedPenny);
+                // Update the penny count
+                totalPennies--;
+                pennyCountDisplay.textContent = 'Penny Count: ' + totalPennies;
+                
+                // Check if all remaining pennies are tails
+                var pennies = pennyContainer.getElementsByTagName('img');
+                var allTails = true;
+                for (var i = 0; i < pennies.length; i++) {
+                    if (pennies[i].dataset.side === 'heads') {
+                        allTails = false;
+                        break;
+                    }
+                }
+                if (allTails) {
+                    // Enable the 'Shake!' button
+                    document.getElementById('shake-button').disabled = false;
+                } else {
+                    document.getElementById('shake-button').disabled = true;
+                }
+            } else {
+                // If it's tails, snap back into container
+                var x = Math.min(Math.max(0, parseFloat(draggedPenny.style.left)), pennyContainer.clientWidth - pennySize);
+                var y = Math.min(Math.max(0, parseFloat(draggedPenny.style.top)), pennyContainer.clientHeight - pennySize);
+                draggedPenny.style.left = x + 'px';
+                draggedPenny.style.top = y + 'px';
+            }
         } else {
             // Ensure the penny stays within the container bounds
-            var x = Math.min(Math.max(0, parseFloat(draggedPenny.style.left)), pennyContainer.clientWidth - 50);
-            var y = Math.min(Math.max(0, parseFloat(draggedPenny.style.top)), pennyContainer.clientHeight - 50);
+            var x = Math.min(Math.max(0, parseFloat(draggedPenny.style.left)), pennyContainer.clientWidth - pennySize);
+            var y = Math.min(Math.max(0, parseFloat(draggedPenny.style.top)), pennyContainer.clientHeight - pennySize);
             draggedPenny.style.left = x + 'px';
             draggedPenny.style.top = y + 'px';
         }
@@ -119,16 +155,63 @@
 
     function shakePennies() {
         var pennies = pennyContainer.getElementsByTagName('img');
+        var shakeDuration = 2000; // milliseconds
+        var shakeInterval = 100; // milliseconds between shakes
+        var elapsed = 0;
+        var shakeTimer = setInterval(function() {
+            for (var i = 0; i < pennies.length; i++) {
+                var penny = pennies[i];
+                // Randomly change the position slightly
+                var deltaX = ((Math.random()+Math.random())/2 - 0.5) * 30; // change in x between -15 and 15
+                var deltaY = (Math.random() - 0.5) * 30; // change in y between -15 and 15
+                var currentX = parseFloat(penny.style.left);
+                var currentY = parseFloat(penny.style.top);
+                var newX = currentX + deltaX;
+                var newY = currentY + deltaY;
+                // Ensure the penny stays within the container bounds
+                newX = Math.min(Math.max(0, newX), pennyContainer.clientWidth - pennySize);
+                newY = Math.min(Math.max(0, newY), pennyContainer.clientHeight - pennySize);
+                penny.style.left = newX + 'px';
+                penny.style.top = newY + 'px';
+                // Optionally, add rotation for visual effect
+                penny.style.transform = 'rotate(' + (Math.random() * 360) + 'deg)';
+            }
+            elapsed += shakeInterval;
+            if (elapsed >= shakeDuration) {
+                clearInterval(shakeTimer);
+                // After shaking, set the pennies to new random sides
+                for (var i = 0; i < pennies.length; i++) {
+                    var penny = pennies[i];
+                    var isHeads = Math.random() < 0.5;
+                    penny.src = isHeads ? 'heads.webp' : 'tails.webp';
+                    penny.dataset.side = isHeads ? 'heads' : 'tails';
+                    // Reset rotation
+                    penny.style.transform = '';
+                }
+                // After shaking, disable the 'Shake!' button again
+                document.getElementById('shake-button').disabled = true;
+            }
+        }, shakeInterval);
+        // Check if all remaining pennies are tails
+        var allTails = true;
         for (var i = 0; i < pennies.length; i++) {
-            var penny = pennies[i];
-            penny.src = Math.random() < 0.5 ? 'heads.webp' : 'tails.webp';
-            penny.style.left = Math.random() * (pennyContainer.clientWidth - 50) + 'px';
-            penny.style.top = Math.random() * (pennyContainer.clientHeight - 50) + 'px';
+            if (pennies[i].dataset.side === 'heads') {
+                allTails = false;
+                break;
+            }
+        }
+        if (allTails) {
+            // Enable the 'Shake!' button
+            document.getElementById('shake-button').disabled = false;
+        } else {
+            document.getElementById('shake-button').disabled = true;
         }
     }
 
     function resetSimulation() {
-        initializeSimulation();
+        if (confirm('Are you sure you want to reset the simulation?')) {
+            initializeSimulation();
+        }
     }
 
     // Event listeners for buttons
