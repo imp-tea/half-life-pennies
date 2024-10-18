@@ -163,6 +163,15 @@
         var shakeInterval = 100; // milliseconds between shakes
         var elapsed = 0;
         var shakeTimer = setInterval(function() {
+            // Before shaking, set the pennies to new random sides
+            for (var i = 0; i < pennies.length; i++) {
+                var penny = pennies[i];
+                var isHeads = Math.random() < 0.5;
+                penny.src = isHeads ? 'heads.webp' : 'tails.webp';
+                penny.dataset.side = isHeads ? 'heads' : 'tails';
+                // Reset rotation
+                penny.style.transform = '';
+            }
             for (var i = 0; i < pennies.length; i++) {
                 var penny = pennies[i];
                 // Randomly change the position slightly
@@ -183,15 +192,7 @@
             elapsed += shakeInterval;
             if (elapsed >= shakeDuration) {
                 clearInterval(shakeTimer);
-                // After shaking, set the pennies to new random sides
-                for (var i = 0; i < pennies.length; i++) {
-                    var penny = pennies[i];
-                    var isHeads = Math.random() < 0.5;
-                    penny.src = isHeads ? 'heads.webp' : 'tails.webp';
-                    penny.dataset.side = isHeads ? 'heads' : 'tails';
-                    // Reset rotation
-                    penny.style.transform = '';
-                }
+                
                 // After shaking, disable the 'Shake!' button again
                 document.getElementById('shake-button').disabled = true;
             }
